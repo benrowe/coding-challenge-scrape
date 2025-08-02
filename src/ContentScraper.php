@@ -24,7 +24,11 @@ class ContentScraper
         $url = static::URL;
         $scraper = new static();
         $articles = $scraper->scrapeArticles($url);
-        $scraper->persistArticles($articles, 'storage/articles.json');
+        $data = [
+            'articles' => $articles,
+            'categories' => $scraper->extractCategoriesFromArticles($articles),
+        ];
+        $scraper->persistArticles($data, 'storage/articles.json');
     }
 
     /**
@@ -57,6 +61,32 @@ class ContentScraper
     public function persistArticles(array $articles, string $path): void
     {
         file_put_contents($path, json_encode($articles, JSON_PRETTY_PRINT));
+    }
+
+    /**
+     * Extract unique categories from the articles.
+     *
+     * @param array{string: title, string: link, string: date, string: image}[] $articles $articles
+     * @return array<string, int>
+     */
+    private function extractCategoriesFromArticles(array $articles): array
+    {
+        $categories = [];
+
+        foreach ($articles as $article) {
+            // parse the category from the url
+            $url = $article['link'];
+            $parts = explode('/', trim(parse_url($url, PHP_URL_PATH), '/'));
+            $firstPart = $parts[0] ?? 'uncategorised';
+
+            if (isset($categories[$firstPart])) {
+                $categories[$firstPart]++;
+            } else {
+                $categories[$firstPart] = 1;
+            }
+        }
+
+        return $categories;
     }
 
     private function extractNodeText(Crawler $node, string $selector): string
