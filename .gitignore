@@ -1,4 +1,4 @@
 /vendor/
 .phpunit.cache
 /build/
-/storage/*
+/storage/articles.json
