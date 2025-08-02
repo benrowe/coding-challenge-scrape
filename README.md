@@ -1,9 +1,11 @@
 # Tech Test: Web scraper
 
+![dashboard example](docs/dashboard.png)
+
 ## Requirements:
 - [x] Scrape the frontpage of a non-paywalled news site (e.g. news.com.au)
-- [ ] Create tables/pie charts/bar graphs/line graphs showing trends and keywords
-- [ ] Present a table with headlines and articles summary
+- [x] Create tables/pie charts/bar graphs/line graphs showing trends and keywords
+- [x] Present a table with headlines and articles summary
 - [x] No frameworks for the frontend or backend
 - [x] Vanilla JS, bootstrap, JQuery are acceptable for the frontend.
 - [x] JS libraries are also fine.
