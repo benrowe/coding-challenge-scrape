@@ -1,7 +1,10 @@
 {
   "type": "module",
   "license": "UNLICENSED",
-  "scripts": {},
+  "scripts": {
+    "build": "npx tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --minify",
+    "dev": "npx tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --watch"
+  },
   "dependencies": {
     "tailwindcss": "^4.1.11"
   }
