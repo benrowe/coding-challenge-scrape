@@ -41,5 +41,8 @@
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
         }
+    },
+    "require": {
+        "fabpot/goutte": "^4.0"
     }
 }
