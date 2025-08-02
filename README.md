@@ -1,7 +1,7 @@
 # Tech Test: Web scraper
 
 ## Requirements:
-- [ ] Scrape the frontpage of a non-paywalled news site (e.g. news.com.au)
+- [x] Scrape the frontpage of a non-paywalled news site (e.g. news.com.au)
 - [ ] Create tables/pie charts/bar graphs/line graphs showing trends and keywords
 - [ ] Present a table with headlines and articles summary
 - [x] No frameworks for the frontend or backend
@@ -34,6 +34,9 @@ You can call the scraper via the terminal as
 ├── src/
 ├── tests/
 ├── public/
+├── resources/css/
+├── resources/views/
+├── storage/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── Makefile
@@ -46,6 +49,7 @@ You can call the scraper via the terminal as
 
 - Docker
 - Make
+- Node (NPM)
 
 ## Getting Started
 
@@ -67,8 +71,14 @@ You can call the scraper via the terminal as
    ```bash
    make init
    ```
+5. Build the front-end
 
-5. Access the application in your web browser at [http://localhost:8000](http://localhost:8000).
+   ```bash
+   npm install
+   npm run build
+   ```
+
+6. Access the application in your web browser at [http://localhost:8000](http://localhost:8000).
 
 ## Stopping the Application
 
