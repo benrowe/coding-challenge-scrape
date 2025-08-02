@@ -49,6 +49,7 @@ class ContentScraper
                     'link' => $this->extractNodeAttribute($node, 'a.storyblock_title_link', 'href'),
                     'date' => $this->extractNodeAttribute($node, '.storyblock_datetime', 'datetime'),
                     'image' => $this->extractNodeAttribute($node, 'img.storyblck_image', 'src'),
+                    'summary' => $this->extractNodeText($node, '.storyblock_standfirst'),
                 ];
             });
     }

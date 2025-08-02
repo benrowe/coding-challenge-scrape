@@ -9,21 +9,181 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-4">
         <h1 class="text-2xl font-bold mb-4">Analytics Dashboard</h1>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-white p-4 rounded shadow">
                 <h2 class="text-xl font-semibold mb-2">Total Articles</h2>
                 <p id="total-articles" class="text-2xl">0</p>
             </div>
             <div class="bg-white p-4 rounded shadow">
-                <h2 class="text-xl font-semibold mb-2">Total Keywords</h2>
-                <p id="total-keywords" class="text-2xl">0</p>
-            </div>
-            <div class="bg-white p-4 rounded shadow">
-                <h2 class="text-xl font-semibold mb-2">Trending Topics</h2>
-                <ul id="trending-topics" class="list-disc pl-5"></ul>
+                <h2 class="text-xl font-semibold mb-2">Total Categories</h2>
+                <p id="total-categories" class="text-2xl">0</p>
             </div>
         </div>
+        <div class="bg-white p-4 rounded shadow mt-4">
+            <h2 class="text-xl font-semibold mb-2">Trending Categories</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 border-b">Category</th>
+                        <th class="px-4 py-2 border-b">Count</th>
+                    </tr>
+                </thead>
+                <tbody id="trending-categories">
+                    <!-- Trending categories will be populated here -->
+                </tbody>
+
+            </table>
+        </div>
+        <div class="bg-white p-4 rounded shadow mt-4">
+            <h2 class="text-xl font-semibold mb-2">Top 5 Category Breakdown</h2>
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="relative w-64 h-64 md:w-80 md:h-80">
+                    <canvas id="category-chart" ></canvas>
+                </div>
+                <div id="legend" class="flex flex-col gap-4 w-full md:w-auto">
+
+                </div>
+            </div>
+
+        </div>
+        <div class="bg-white p-4 rounded shadow mt-4">
+            <h2 class="text-xl font-semibold mb-2">Articles</h2>
+            <table class="min-w-full bg-white">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 border-b">Title</th>
+                        <th class="px-4 py-2 border-b">Summary</th>
+                    </tr>
+                </thead>
+                <tbody id="articles-list">
+                    <!-- Articles will be listed here -->
+                </tbody>
+
+            </table>
+        </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api')
+                .then(response => response.json())
+                .then(data => {
+                    // high level stats
+                    document.getElementById('total-articles').textContent = data.articles.length;
+                    document.getElementById('total-categories').textContent = Object.keys(data.categories).length;
+                    renderArticlesList(data.articles);
+                    // sort categories by count
+                    const sortedCategories = Object.entries(data.categories).sort((a, b) => b[1] - a[1]);
+                    renderCategoryList(sortedCategories);
+
+                    const cavnas = document.getElementById('category-chart');
+                    const ctx = cavnas.getContext('2d');
+                    const chartData = [];
+                    // get the first 5 categories
+                    const topCategories = Object.entries(data.categories).slice(0, 5);
+                    for (const cat in topCategories) {
+                        chartData.push({
+                            label: topCategories[cat][0],
+                            value: topCategories[cat][1],
+                            color: getRandomColor()
+                        });
+                    }
+                    // add all other categories as "Other"
+                    const otherCount = Object.entries(data.categories).slice(5).reduce((sum, [, count]) => sum + count, 0);
+                    if (otherCount > 0) {
+                        chartData.push({
+                            label: 'Other',
+                            value: otherCount,
+                            color: '#cccccc' // gray for other
+                        });
+                    }
+
+                    const totalValue = chartData.reduce((sum, { value }) => sum + value, 0);
+                    let startAngle = -0.5 * Math.PI; // start at the top
+
+                    function drawChart() {
+                        // resize the canvas to fit the container
+                        const cavnasSize = Math.min(cavnas.parentElement.offsetWidth, cavnas.parentElement.offsetHeight);
+                        cavnas.width = cavnasSize;
+                        cavnas.height = cavnasSize;
+                        // get the center of the canvas
+                        const centerX = cavnas.width / 2;
+                        const centerY = cavnas.height / 2;
+                        const radius = Math.min(centerX, centerY) * .9; // leave some space for the legend
+
+                        // init state
+                        let currentAngle = startAngle;
+                        chartData.forEach(item => {
+                            const start = (item.value / totalValue) * 2 * Math.PI;
+                            const end = currentAngle + start;
+
+                            // draw the slice of the pie
+                            ctx.beginPath();
+                            ctx.moveTo(centerX, centerY);
+                            ctx.arc(centerX, centerY, radius, currentAngle, end);
+                            ctx.closePath();
+                            ctx.fillStyle = item.color;
+                            ctx.fill();
+
+                            // slice label details
+                            const labelAngle = currentAngle + (start / 2);
+                            const labelX = centerX + (radius / 2) * Math.cos(labelAngle);
+                            const labelY = centerY + (radius / 2) * Math.sin(labelAngle);
+                            const percentage = ((item.value / totalValue) * 100).toFixed(1);
+
+                            // render label
+                            ctx.fillStyle = '#000';
+                            ctx.font = '14px Arial';
+                            ctx.fillText(`${item.label} (${percentage}%)`, labelX, labelY);
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+
+                            // update the currentAngle with the end of the slice
+                            currentAngle = end;
+
+                            // legend
+                            const legendItem = document.createElement('div');
+                            legendItem.className = 'flex items-center gap-2';
+                            legendItem.innerHTML = `<span class="w-4 h-4" style="background-color: ${item.color};"></span>
+                                                <span>${item.label} (${percentage}%)</span>`;
+                            document.getElementById('legend').appendChild(legendItem);
+                        })
+                    }
+                    drawChart();
+
+                })
+                .catch(error => console.error('Error fetching analytics data:', error));
+        });
+
+        // Function to render the trending categories list
+        function renderCategoryList(categories) {
+            const trendingCategoriesList = document.getElementById('trending-categories');
+            trendingCategoriesList.innerHTML = ''; // clear existing content
+
+            for (let category in categories) {
+                const listItem = document.createElement('tr');
+                listItem.innerHTML = `<td class="px-4 py-2 border-b">${categories[category][0]}</td>
+                                        <td class="px-4 py-2 border-b">${categories[category][1]}</td>`;
+                trendingCategoriesList.appendChild(listItem);
+            }
+        }
+
+        function renderArticlesList(articles) {
+            const articlesList = document.getElementById('articles-list');
+            articlesList.innerHTML = ''; // clear existing content
+
+            articles.forEach(article => {
+                const listItem = document.createElement('tr');
+                listItem.innerHTML = `<td class="px-4 py-2 border-b">${article.title}</td>
+                                        <td class="px-4 py-2 border-b">${article.summary}</td>`;
+                articlesList.appendChild(listItem);
+            });
+        }
+
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16);
+        }
+
+    </script>
 
 </body>
 </html>
