@@ -63,125 +63,152 @@
         </div>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             fetch('/api')
                 .then(response => response.json())
-                .then(data => {
-                    // high level stats
-                    document.getElementById('total-articles').textContent = data.articles.length;
-                    document.getElementById('total-categories').textContent = Object.keys(data.categories).length;
-                    renderArticlesList(data.articles);
-                    // sort categories by count
-                    const sortedCategories = Object.entries(data.categories).sort((a, b) => b[1] - a[1]);
-                    renderCategoryList(sortedCategories);
-
-                    const cavnas = document.getElementById('category-chart');
-                    const ctx = cavnas.getContext('2d');
-                    const chartData = [];
-                    // get the first 5 categories
-                    const topCategories = Object.entries(data.categories).slice(0, 5);
-                    for (const cat in topCategories) {
-                        chartData.push({
-                            label: topCategories[cat][0],
-                            value: topCategories[cat][1],
-                            color: getRandomColor()
-                        });
-                    }
-                    // add all other categories as "Other"
-                    const otherCount = Object.entries(data.categories).slice(5).reduce((sum, [, count]) => sum + count, 0);
-                    if (otherCount > 0) {
-                        chartData.push({
-                            label: 'Other',
-                            value: otherCount,
-                            color: '#cccccc' // gray for other
-                        });
-                    }
-
-                    const totalValue = chartData.reduce((sum, { value }) => sum + value, 0);
-                    let startAngle = -0.5 * Math.PI; // start at the top
-
-                    function drawChart() {
-                        // resize the canvas to fit the container
-                        const cavnasSize = Math.min(cavnas.parentElement.offsetWidth, cavnas.parentElement.offsetHeight);
-                        cavnas.width = cavnasSize;
-                        cavnas.height = cavnasSize;
-                        // get the center of the canvas
-                        const centerX = cavnas.width / 2;
-                        const centerY = cavnas.height / 2;
-                        const radius = Math.min(centerX, centerY) * .9; // leave some space for the legend
-
-                        // init state
-                        let currentAngle = startAngle;
-                        chartData.forEach(item => {
-                            const start = (item.value / totalValue) * 2 * Math.PI;
-                            const end = currentAngle + start;
-
-                            // draw the slice of the pie
-                            ctx.beginPath();
-                            ctx.moveTo(centerX, centerY);
-                            ctx.arc(centerX, centerY, radius, currentAngle, end);
-                            ctx.closePath();
-                            ctx.fillStyle = item.color;
-                            ctx.fill();
-
-                            // slice label details
-                            const labelAngle = currentAngle + (start / 2);
-                            const labelX = centerX + (radius / 2) * Math.cos(labelAngle);
-                            const labelY = centerY + (radius / 2) * Math.sin(labelAngle);
-                            const percentage = ((item.value / totalValue) * 100).toFixed(1);
-
-                            // render label
-                            ctx.fillStyle = '#000';
-                            ctx.font = '14px Arial';
-                            ctx.fillText(`${item.label} (${percentage}%)`, labelX, labelY);
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-
-                            // update the currentAngle with the end of the slice
-                            currentAngle = end;
-
-                            // legend
-                            const legendItem = document.createElement('div');
-                            legendItem.className = 'flex items-center gap-2';
-                            legendItem.innerHTML = `<span class="w-4 h-4" style="background-color: ${item.color};"></span>
-                                                <span>${item.label} (${percentage}%)</span>`;
-                            document.getElementById('legend').appendChild(legendItem);
-                        })
-                    }
-                    drawChart();
-
-                })
+                .then(data => handleAnalyticsData(data))
                 .catch(error => console.error('Error fetching analytics data:', error));
         });
 
-        // Function to render the trending categories list
-        function renderCategoryList(categories) {
-            const trendingCategoriesList = document.getElementById('trending-categories');
-            trendingCategoriesList.innerHTML = ''; // clear existing content
+        function handleAnalyticsData(data) {
+            updateHeadlineStats(data);
+            renderArticlesList(data.articles);
 
-            for (let category in categories) {
-                const listItem = document.createElement('tr');
-                listItem.innerHTML = `<td class="px-4 py-2 border-b">${categories[category][0]}</td>
-                                        <td class="px-4 py-2 border-b">${categories[category][1]}</td>`;
-                trendingCategoriesList.appendChild(listItem);
+            const sortedCategories = sortCategoriesByCount(data.categories);
+            renderCategoryList(sortedCategories);
+
+            const chartData = prepareChartData(data.categories);
+            drawCategoryChart(chartData);
+        }
+
+        function updateHeadlineStats(data) {
+            document.getElementById('total-articles').textContent = data.articles.length;
+            document.getElementById('total-categories').textContent = Object.keys(data.categories).length;
+        }
+
+        function sortCategoriesByCount(categories) {
+            return Object.entries(categories).sort((a, b) => b[1] - a[1]);
+        }
+
+        function prepareChartData(categories) {
+            // extract the top 5 categories and their counts
+            // if there are more than 5, combine the rest into an "Other" category
+            const categoryEntries = Object.entries(categories);
+            const topFive = categoryEntries.slice(0, 5).map(([label, value]) => ({
+                label,
+                value,
+                color: getRandomColor()
+            }));
+
+            const otherCount = categoryEntries.slice(5).reduce((sum, [, count]) => sum + count, 0);
+            if (otherCount > 0) {
+                topFive.push({
+                    label: 'Other',
+                    value: otherCount,
+                    color: '#cccccc'
+                });
             }
+
+            return topFive;
+        }
+
+        function drawCategoryChart(chartData) {
+            const canvas = document.getElementById('category-chart');
+            const ctx = canvas.getContext('2d');
+            const parent = canvas.parentElement;
+            const size = Math.min(parent.offsetWidth, parent.offsetHeight);
+
+            canvas.width = size;
+            canvas.height = size;
+
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.45;
+            const total = chartData.reduce((sum, item) => sum + item.value, 0);
+            let currentAngle = -0.5 * Math.PI;
+
+            clearLegend();
+
+            chartData.forEach(item => {
+                const sliceAngle = (item.value / total) * 2 * Math.PI;
+                const endAngle = currentAngle + sliceAngle;
+
+                drawSlice(ctx, centerX, centerY, radius, currentAngle, endAngle, item.color);
+                drawLabel(ctx, centerX, centerY, radius, currentAngle, sliceAngle, item.label, item.value, total);
+                appendLegendItem(item.label, item.value, total, item.color);
+
+                currentAngle = endAngle;
+            });
+        }
+
+        function drawSlice(ctx, cx, cy, radius, arcStart, arcEnd, colour) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, radius, arcStart, arcEnd);
+            ctx.closePath();
+            ctx.fillStyle = colour;
+            ctx.fill();
+        }
+
+        function drawLabel(ctx, cx, cy, radius, arcStart, arcEnd, label, value, total) {
+            const midAngle = arcStart + arcEnd / 2;
+            const x = cx + (radius / 2) * Math.cos(midAngle);
+            const y = cy + (radius / 2) * Math.sin(midAngle);
+            const percentage = ((value / total) * 100).toFixed(1);
+
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${label} (${percentage}%)`, x, y);
+        }
+
+        function appendLegendItem(label, value, total, color) {
+            const percentage = ((value / total) * 100).toFixed(1);
+            const legend = document.getElementById('legend');
+            const item = document.createElement('div');
+            item.className = 'flex items-center gap-2';
+            item.innerHTML = `
+                <span class="w-4 h-4" style="background-color: ${color};"></span>
+                <span>${label} (${percentage}%)</span>`;
+            legend.appendChild(item);
+        }
+
+        function clearLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+        }
+
+        function renderCategoryList(categories) {
+            const list = document.getElementById('trending-categories');
+            list.innerHTML = '';
+
+            categories.forEach(([name, count]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-2 border-b">${name}</td>
+                    <td class="px-4 py-2 border-b">${count}</td>`;
+                list.appendChild(row);
+            });
         }
 
         function renderArticlesList(articles) {
-            const articlesList = document.getElementById('articles-list');
-            articlesList.innerHTML = ''; // clear existing content
+            const list = document.getElementById('articles-list');
+            list.innerHTML = '';
 
-            articles.forEach(article => {
-                const listItem = document.createElement('tr');
-                listItem.innerHTML = `<td class="px-4 py-2 border-b">${article.title}</td>
-                                        <td class="px-4 py-2 border-b">${article.summary}</td>`;
-                articlesList.appendChild(listItem);
+            articles.forEach(({ title, summary }) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-4 py-2 border-b">${title}</td>
+                    <td class="px-4 py-2 border-b">${summary}</td>`;
+                list.appendChild(row);
             });
         }
 
         function getRandomColor() {
-            return '#' + Math.floor(Math.random()*16777215).toString(16);
+            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
         }
+
 
     </script>
 
