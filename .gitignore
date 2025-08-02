@@ -3,3 +3,4 @@
 /build/
 /storage/articles.json
 node_modules
+public/dist/

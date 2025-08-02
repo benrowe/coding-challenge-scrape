@@ -2,10 +2,11 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --minify",
-    "dev": "npx tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --watch"
+    "build": "tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --minify",
+    "dev": "tailwindcss -i ./resources/css/index.css -o ./public/dist/css/index.css --watch"
   },
   "dependencies": {
+    "@tailwindcss/cli": "^4.1.11",
     "tailwindcss": "^4.1.11"
   }
 }
