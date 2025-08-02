@@ -19,6 +19,14 @@
 - build front-end to visualise data
 - use tailwind for styling
 
+## Running the scraper
+
+You can call the scraper via the terminal as
+
+```bash
+./scrape
+```
+
 ## Project Structure
 
 ```
