@@ -2,3 +2,4 @@
 .phpunit.cache
 /build/
 /storage/articles.json
+node_modules
