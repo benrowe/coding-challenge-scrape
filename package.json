@@ -1,0 +1,8 @@
+{
+  "type": "module",
+  "license": "UNLICENSED",
+  "scripts": {},
+  "dependencies": {
+    "tailwindcss": "^4.1.11"
+  }
+}
